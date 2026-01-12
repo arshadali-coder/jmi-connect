@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Messages | CR Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+    .inbox-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        height: calc(100vh - 180px);
+        height: calc(100dvh - 180px);
+        background: var(--glass-bg);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    @media (min-width: 768px) {
+        .inbox-container {
+            grid-template-columns: 320px 1fr;
+        }
+    }
+
+    /* Sidebar */
+    .inbox-sidebar {
+        background: #f8fafc;
+        border-right: 1px solid rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .conversation-item {
+        padding: 1.2rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        cursor: pointer;
+        transition: var(--transition-fast);
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .conversation-item:hover {
+        background: white;
+    }
+
+    .conversation-item.active {
+        background: white;
+        border-left: 4px solid var(--secondary-500);
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.02);
+    }
+
+    .avatar-circle {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--secondary-500), var(--secondary-600));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    /* Chat Area */
+    .chat-view {
+        display: flex;
+        flex-direction: column;
+        background: white;
+        position: relative;
+    }
+
+    .message-bubble {
+        max-width: 80%;
+        padding: 0.8rem 1.2rem;
+        border-radius: var(--radius-lg);
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin-bottom: 0.5rem;
+    }
+
+    .msg-cr {
+        align-self: flex-end;
+        background: linear-gradient(135deg, var(--secondary-500), var(--secondary-600));
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .msg-user {
+        align-self: flex-start;
+        background: #f1f5f9;
+        color: var(--text-main);
+        border-bottom-left-radius: 4px;
+    }
+
+    @media (max-width: 767px) {
+        .sidebar-hidden {
+            display: none;
+        }
+
+        .inbox-sidebar.mobile-full {
+            width: 100%;
+            position: absolute;
+            inset: 0;
+            z-index: 50;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="inbox-container">
+    <!-- Sidebar -->
+    <div id="inboxSidebar" class="inbox-sidebar">
+        <div style="padding: 1.5rem; background: var(--secondary-600); color: white;">
+            <h3 style="font-weight: 800; font-size: 1.1rem;">Student Inbox</h3>
+            <p style="font-size: 0.75rem; opacity: 0.8; font-weight: 500;">Section {{ user.section }} Management</p>
+        </div>
+        <div id="conversationsList" style="flex: 1; overflow-y: auto;">
+            <div style="display: flex; justify-content: center; padding: 3rem;">
+                <div class="loading" style="border-top-color: var(--secondary-500);"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat Window -->
+    <div id="chatArea" class="chat-view">
+        <div
+            style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; padding: 3rem; text-align: center;">
+            <div style="font-size: 4rem; opacity: 0.3; margin-bottom: 1.5rem;">📫</div>
+            <h3 style="font-weight: 800; font-size: 1.5rem; color: #64748b;">Select a Conversation</h3>
+            <p>Choose a student from the list to respond to their queries.</p>
+            <button onclick="toggleSidebar()" class="btn btn-primary" style="margin-top: 2rem; display: none;"
+                id="mobileToggle">View Students</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "{{ firebase_config.apiKey if firebase_config else '' }}",
+        authDomain: "{{ firebase_config.authDomain if firebase_config else '' }}",
+        databaseURL: "{{ firebase_config.databaseURL if firebase_config else '' }}",
+        projectId: "{{ firebase_config.projectId if firebase_config else '' }}",
+        storageBucket: "{{ firebase_config.storageBucket if firebase_config else '' }}",
+        messagingSenderId: "{{ firebase_config.messagingSenderId if firebase_config else '' }}",
+        appId: "{{ firebase_config.appId if firebase_config else '' }}"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const currentUser = { username: "{{ user.username }}", section: "{{ user.section }}", role: "cr" };
+    const messagesRef = database.ref(`chats/section_${currentUser.section}/messages`);
+
+    let conversations = {};
+    let activeStudent = null;
+
+    messagesRef.orderByChild('timestamp').on('value', (snapshot) => {
+        conversations = {};
+        if (snapshot.exists()) {
+            snapshot.forEach((child) => {
+                const msg = child.val();
+                let threadKey = null;
+                if (msg.senderRole !== 'cr') threadKey = msg.sender;
+                else if (msg.replyTo) threadKey = msg.replyTo;
+
+                if (threadKey) {
+                    if (!conversations[threadKey]) conversations[threadKey] = { last: msg, msgs: [] };
+                    conversations[threadKey].msgs.push(msg);
+                    if (msg.timestamp > conversations[threadKey].last.timestamp) conversations[threadKey].last = msg;
+                }
+            });
+        }
+        renderSidebar();
+        if (activeStudent) renderChat(activeStudent);
+    });
+
+    function renderSidebar() {
+        const list = document.getElementById('conversationsList');
+        list.innerHTML = '';
+        const students = Object.keys(conversations).sort((a, b) => conversations[b].last.timestamp - conversations[a].last.timestamp);
+
+        if (students.length === 0) {
+            list.innerHTML = '<div style="padding: 2rem; text-align: center; color: #94a3b8; font-size: 0.9rem;">No messages yet.</div>';
+            return;
+        }
+
+        students.forEach(s => {
+            const item = document.createElement('div');
+            item.className = `conversation-item ${activeStudent === s ? 'active' : ''}`;
+            item.onclick = () => selectConv(s);
+            item.innerHTML = `
+                <div class="avatar-circle">${s[0].toUpperCase()}</div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.1rem;">${s}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(conversations[s].last.text)}</div>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    function selectConv(s) {
+        activeStudent = s;
+        if (window.innerWidth < 768) document.getElementById('inboxSidebar').classList.add('sidebar-hidden');
+        renderSidebar();
+        renderChat(s);
+    }
+
+    function renderChat(s) {
+        const area = document.getElementById('chatArea');
+        area.innerHTML = `
+            <div style="padding: 1.2rem; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 1rem;">
+                <button onclick="toggleSidebar()" style="display: ${window.innerWidth < 768 ? 'block' : 'none'}; border: none; background: none; font-size: 1.2rem;">←</button>
+                <div class="avatar-circle" style="width: 36px; height: 36px; font-size: 0.9rem;">${s[0].toUpperCase()}</div>
+                <h3 style="font-weight: 800;">${s}</h3>
+            </div>
+            <div id="msgWindow" style="flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; background: #fbfcfd;"></div>
+            <div style="padding: 1.2rem; border-top: 1px solid rgba(0,0,0,0.05); display: flex; gap: 1rem;">
+                <input type="text" id="replyInput" class="form-input" style="border-radius: 50px;" placeholder="Type your reply...">
+                <button onclick="sendReply('${s}')" class="btn btn-primary" style="border-radius: 50px; padding: 0.5rem 1.5rem;">Send</button>
+            </div>
+        `;
+        const win = document.getElementById('msgWindow');
+        conversations[s].msgs.forEach(m => {
+            const isSelf = m.senderRole === 'cr';
+            const mdiv = document.createElement('div');
+            mdiv.style.display = 'flex';
+            mdiv.style.flexDirection = 'column';
+            mdiv.style.alignItems = isSelf ? 'flex-end' : 'flex-start';
+            mdiv.innerHTML = `
+                <div class="message-bubble ${isSelf ? 'msg-cr' : 'msg-user'}">${escapeHtml(m.text)}</div>
+                <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 0.8rem; padding: 0 0.5rem;">${new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            `;
+            win.appendChild(mdiv);
+        });
+        win.scrollTop = win.scrollHeight;
+        document.getElementById('replyInput').onkeypress = (e) => { if (e.key === 'Enter') sendReply(s); };
+    }
+
+    function sendReply(s) {
+        const input = document.getElementById('replyInput');
+        if (!input.value.trim()) return;
+        messagesRef.push({
+            text: input.value.trim(),
+            sender: currentUser.username,
+            senderRole: 'cr',
+            replyTo: s,
+            timestamp: Date.now(),
+            section: currentUser.section
+        }).then(() => input.value = '');
+    }
+
+    function toggleSidebar() {
+        document.getElementById('inboxSidebar').classList.toggle('sidebar-hidden');
+    }
+
+    if (window.innerWidth < 768) {
+        document.getElementById('mobileToggle').style.display = 'inline-block';
+        document.getElementById('inboxSidebar').classList.add('mobile-full');
+    }
+
+    function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+</script>
+{% endblock %}

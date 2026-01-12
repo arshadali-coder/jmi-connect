@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}CR Dashboard | JMIConnect{% endblock %}
+
+{% block content %}
+<div style="padding-bottom: 5rem;">
+    <!-- Welcome Card -->
+    <div class="glass-panel"
+        style="padding: 2.5rem; text-align: center; margin-bottom: 2rem; position: relative; overflow: hidden;">
+        <div
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: linear-gradient(90deg, var(--secondary-500), var(--primary-500));">
+        </div>
+        <h2 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;">CR Management
+            Console</h2>
+        <p style="color: var(--text-muted); font-size: 1.1rem;">Welcome back, <strong>{{ user.username }}</strong> •
+            Section <span style="color: var(--primary-600);">{{ user.section }}</span></p>
+        <div
+            style="display: inline-block; margin-top: 1.5rem; padding: 0.5rem 1.2rem; background: #ecfdf5; color: #065f46; border-radius: 50px; font-weight: 700; font-size: 0.85rem; border: 1px solid #10b981;">
+            ADMIN PRIVILEGES ACTIVE
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        {% set stats_data = [
+        {'label': 'Announcements', 'val': stats.announcements, 'color': 'var(--secondary-500)'},
+        {'label': 'Study Notes', 'val': stats.notes, 'color': 'var(--primary-600)'},
+        {'label': 'Resources', 'val': stats.contacts, 'color': '#f59e0b'}
+        ] %}
+        {% for s in stats_data %}
+        <div class="glass-panel" style="padding: 1.5rem; text-align: center; border-radius: var(--radius-lg);">
+            <div style="font-size: 2.5rem; font-weight: 800; color: {{ s.color }}; margin-bottom: 0.2rem;">{{ s.val }}
+            </div>
+            <div
+                style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">
+                {{ s.label }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Management Actions -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem;">
+        {% set actions = [
+        {'h': 'Announcements', 'p': 'Post alerts & deadlines', 'e': 'cr.announcements', 'i': '📢', 'bg':
+        'linear-gradient(135deg, #6366f1, #4f46e5)'},
+        {'h': 'Notes', 'p': 'Upload subject materials', 'e': 'cr.notes', 'i': '📚', 'bg': 'linear-gradient(135deg,
+        #10b981, #059669)'},
+        {'h': 'Messages', 'p': 'Respond to students', 'e': 'cr.messages', 'i': '💬', 'bg': 'linear-gradient(135deg,
+        #3b82f6, #2563eb)'},
+        {'h': 'Contacts', 'p': 'Manage emergency info', 'e': 'cr.contacts', 'i': '📞', 'bg': 'linear-gradient(135deg,
+        #f59e0b, #d97706)'}
+        ] %}
+        {% for a in actions %}
+        <a href="{{ url_for(a.e) }}" class="admin-card" style="background: {{ a.bg }};">
+            <div class="admin-card-icon">{{ a.i }}</div>
+            <h3 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.2rem;">{{ a.h }}</h3>
+            <p style="opacity: 0.9; font-size: 0.9rem; font-weight: 500;">{{ a.p }}</p>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .admin-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2.5rem;
+        border-radius: var(--radius-xl);
+        color: white;
+        transition: all 0.3s var(--ease-smooth);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+    }
+
+    .admin-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    .admin-card-icon {
+        font-size: 3rem;
+        margin-bottom: 1.5rem;
+        transition: transform 0.3s var(--ease-smooth);
+    }
+
+    .admin-card:hover .admin-card-icon {
+        transform: scale(1.2) rotate(5deg);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Settings | JMIConnect{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto; padding-bottom: 4rem;">
+    <div class="glass-panel" style="padding: 2rem;">
+        <h2
+            style="font-size: 2rem; font-weight: 800; margin-bottom: 2rem; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 1rem;">
+            Account Settings
+        </h2>
+
+        <form action="{{ url_for('auth.settings') }}" method="POST">
+
+            <!-- 1. Profile Picture -->
+            <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; margin-bottom: 3rem;">
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700;">Profile Picture</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Update your photo and personal details.</p>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                    <div style="position: relative;">
+                        {% if user.profile_pic %}
+                        <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" id="preview-img"
+                            style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: var(--glass-shadow);">
+                        {% else %}
+                        <div id="preview-div"
+                            style="width: 100px; height: 100px; border-radius: 50%; background: var(--secondary-500); border: 4px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 2.5rem; font-weight: 800; box-shadow: var(--glass-shadow);">
+                            {{ user.username[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div style="flex: 1; min-width: 250px;">
+                        <p
+                            style="font-size: 0.9rem; color: var(--text-muted); padding: 0.5rem; background: rgba(0,0,0,0.03); border-radius: var(--radius-md);">
+                            Profile picture updates are temporarily disabled during the storage migration.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.05); margin-bottom: 3rem;">
+
+            <!-- 2. Academic Info (Grid) -->
+            <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; margin-bottom: 3rem;">
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700;">Personal Information</h3>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" value="{{ user.username }}" disabled class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Role</label>
+                        <input type="text" value="{{ user.role|capitalize if user.role else 'Student' }}" disabled
+                            class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Section</label>
+                        <input type="text" value="{{ user.section }}" disabled class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Branch</label>
+                        <input type="text" value="{{ user.branch }}" disabled class="form-input">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" name="email" value="{{ user.email }}" required class="form-input"
+                            placeholder="example@jmi.edu">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label class="form-label">Mobile Number</label>
+                        <input type="tel" name="mobile" value="{{ user.mobile if user.mobile else '' }}"
+                            placeholder="+91 9999999999" class="form-input">
+                    </div>
+                </div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.05); margin-bottom: 3rem;">
+
+            <!-- 3. Security -->
+            <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; margin-bottom: 3rem;">
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700;">Security</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Change your password regularly.</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" name="current_password" placeholder="••••••••" class="form-input">
+                    </div>
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                        <div class="form-group">
+                            <label class="form-label">New Password</label>
+                            <input type="password" name="new_password" placeholder="••••••••" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Confirm New Password</label>
+                            <input type="password" name="confirm_password" placeholder="••••••••" class="form-input">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Area -->
+            <div
+                style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 2rem;">
+                <!-- Logout Integrated -->
+                <button type="button" onclick="logout()" class="btn btn-ghost"
+                    style="color: #ef4444; font-weight: 600;">
+                    Log Out of Account
+                </button>
+
+                <div style="display: flex; gap: 1rem;">
+                    <a href="/" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div style="margin-top: 1.5rem;">
+                {% for category, message in messages %}
+                <div
+                    style="padding: 1rem; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; 
+                            {{ 'background: #ecfdf5; color: #065f46; border: 1px solid #10b981;' if category == 'success' else 'background: #fef2f2; color: #991b1b; border: 1px solid #ef4444;' }}">
+                    {{ '✅' if category == 'success' else '⚠️' }} {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+        </form>
+    </div>
+</div>
+
+<script>
+    function logout() {
+        if (confirm('Are you sure you want to log out?')) {
+            window.location.href = "{{ url_for('auth.logout') }}";
+        }
+    }
+
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                let previewImg = document.getElementById('preview-img');
+                const previewDiv = document.getElementById('preview-div');
+
+                if (!previewImg && previewDiv) {
+                    previewImg = document.createElement('img');
+                    previewImg.id = 'preview-img';
+                    previewImg.style.width = '100px';
+                    previewImg.style.height = '100px';
+                    previewImg.style.borderRadius = '50%';
+                    previewImg.style.objectFit = 'cover';
+                    previewImg.style.border = '4px solid white';
+                    previewImg.style.boxShadow = 'var(--glass-shadow)';
+                    previewDiv.replaceWith(previewImg);
+                }
+
+                if (previewImg) previewImg.src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+{% endblock %}

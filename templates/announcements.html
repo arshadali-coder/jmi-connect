@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Announcements | JMIConnect{% endblock %}
+
+{% block content %}
+
+<!-- Search Bar -->
+<div class="search-wrapper">
+    <input type="text" class="search-input-alt" placeholder="Search announcements...">
+    <button class="btn btn-primary" style="border-radius: 50px; padding: 0.6rem 2rem;">Search</button>
+</div>
+
+<!-- Filter Tabs -->
+<div
+    style="display: flex; gap: 0.8rem; overflow-x: auto; padding-bottom: 1.5rem; justify-content: center; margin-bottom: 2rem;">
+    {% set tags = ['All', 'Announcements', 'Deadlines'] %}
+    {% for tag in tags %}
+    <button class="filter-tab btn {% if loop.first %}btn-primary active{% else %}btn-ghost{% endif %}"
+        style="border-radius: 50px; border: 1px solid rgba(255,255,255,0.2); color: white; white-space: nowrap; font-size: 0.9rem;">
+        {{ tag }}
+    </button>
+    {% endfor %}
+</div>
+
+<!-- Announcements Grid (Fixed to 2 columns on mobile in style.css) -->
+<div class="announcements-grid">
+    {% set items = announcements if announcements is defined else [] %}
+    {% for a in items %}
+    <div class="card" data-type="{{ a.type }}">
+        <div style="flex: 1;">
+            <h3 class="card-title">{{ a.title }}</h3>
+            <p class="card-subtitle">{{ a.subtitle }}</p>
+            <p
+                style="color: rgba(255,255,255,0.7); font-size: 0.85rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 1rem;">
+                {{ a.description }}
+            </p>
+
+            <div style="margin-bottom: 1rem;">
+                <span
+                    style="padding: 0.2rem 0.6rem; border-radius: 50px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; 
+                            {{ 'background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3);' if a.type == 'deadline' else 'background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.2);' }}">
+                    {% if a.type == 'deadline' %}🚨 Deadline: {% endif %}{{ a.date }}
+                </span>
+            </div>
+        </div>
+
+        <a href="{{ a.link }}" class="btn"
+            style="color: var(--primary-400); font-weight: 700; padding: 0.5rem 0; justify-content: flex-start; gap: 0.5rem; width: fit-content; font-size: 0.9rem;">
+            {{ a.link_text }}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14m-7-7 7 7-7 7" />
+            </svg>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Empty State -->
+{% if not items %}
+<div class="glass-panel" style="padding: 4rem; text-align: center; background: rgba(255,255,255,0.05);">
+    <div style="font-size: 4rem; margin-bottom: 1rem;">📢</div>
+    <h3 style="color: white; font-size: 1.5rem; font-weight: 700;">No Announcements Yet</h3>
+    <p style="color: rgba(255,255,255,0.6);">Check back later for updates from your CR.</p>
+</div>
+{% endif %}
+
+<style>
+    .filter-tab.active {
+        background: white !important;
+        color: var(--primary-800) !important;
+        border: none !important;
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const tabs = document.querySelectorAll('.filter-tab');
+    const cards = document.querySelectorAll('.card');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            const filter = tab.textContent.trim().toLowerCase();
+
+            cards.forEach(card => {
+                const type = card.dataset.type;
+                if (filter === 'all' ||
+                    (filter === 'announcements' && type === 'announcement') ||
+                    (filter === 'deadlines' && type === 'deadline')) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

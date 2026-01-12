@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Notes | JMIConnect{% endblock %}
+
+{% block content %}
+
+<!-- Search Bar -->
+<div class="search-wrapper">
+    <input type="text" id="noteSearch" class="search-input-alt" placeholder="Search notes by subject..."
+        onkeyup="filterNotes()">
+    <button class="btn btn-primary" style="border-radius: 50px; padding: 0.6rem 2rem;">Search</button>
+</div>
+
+<!-- Filter Tabs -->
+<div style="display: flex; gap: 0.8rem; overflow-x: auto; padding-bottom: 1.5rem; justify-content: start; margin-bottom: 2rem;"
+    class="scrollbar-hide">
+    <button class="filter-tab btn btn-primary active" data-semester="all"
+        style="border-radius: 50px; border: 1px solid rgba(255,255,255,0.2); color: white; white-space: nowrap;">All</button>
+    {% for i in range(1, 9) %}
+    <button class="filter-tab btn btn-ghost" data-semester="{{ i }}"
+        style="border-radius: 50px; border: 1px solid rgba(255,255,255,0.2); color: white; white-space: nowrap; font-size: 0.9rem;">
+        Sem {{ i }}
+    </button>
+    {% endfor %}
+</div>
+
+<!-- Notes Grid -->
+<div class="announcements-grid" id="notesList" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+    {% if notes %}
+    {% for note in notes %}
+    <div class="card note-item" data-semester="{{ note.semester }}" data-subject="{{ note.subject|lower }}"
+        style="flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.5rem;">
+        <div style="flex: 1; min-width: 0;">
+            <h3 class="card-title"
+                style="margin-bottom: 0.2rem; font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ note.subject }}</h3>
+            <p style="color: var(--primary-400); font-weight: 600; font-size: 0.8rem;">
+                Sem {{ note.semester }} • {{ note.original_name or note.filename }}
+            </p>
+        </div>
+
+        <a href="{{ note.download_url }}" target="_blank" class="btn"
+            style="width: 48px; height: 48px; min-width: 48px; border-radius: 50%; padding: 0; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </a>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div style="grid-column: 1 / -1; padding: 5rem 0; text-align: center;">
+        <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">📚</div>
+        <h3 style="color: white; font-size: 1.5rem; font-weight: 700;">No Notes Found</h3>
+        <p style="color: rgba(255,255,255,0.6);">Your CR hasn't uploaded any notes for this section yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .filter-tab.active {
+        background: white !important;
+        color: var(--primary-800) !important;
+        border: none !important;
+    }
+
+    .note-item:hover .btn {
+        background: var(--primary-500) !important;
+        border-color: transparent !important;
+        transform: scale(1.1);
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const tabs = document.querySelectorAll('.filter-tab');
+    const noteItems = document.querySelectorAll('.note-item');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function () {
+            tabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            const sem = this.dataset.semester;
+
+            noteItems.forEach(item => {
+                const itemSem = item.dataset.semester;
+                if (sem === 'all' || itemSem === sem) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    function filterNotes() {
+        const query = document.getElementById('noteSearch').value.toLowerCase();
+        const activeSem = document.querySelector('.filter-tab.active').dataset.semester;
+
+        noteItems.forEach(item => {
+            const subject = item.dataset.subject || '';
+            const text = item.textContent.toLowerCase();
+            const itemSem = item.dataset.semester;
+
+            const matchesSearch = subject.includes(query) || text.includes(query);
+            const matchesSem = activeSem === 'all' || itemSem === activeSem;
+
+            if (matchesSearch && matchesSem) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+</script>
+{% endblock %}

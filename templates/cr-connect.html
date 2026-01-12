@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}CR Connect | JMIConnect{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Chat specific overrides for true flex-screen layout */
+    .chat-wrapper-main {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 160px);
+        height: calc(100dvh - 160px);
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    @media (max-width: 768px) {
+        .chat-wrapper-main {
+            height: calc(100dvh - 140px);
+        }
+    }
+
+    .message-bubble {
+        max-width: 80%;
+        padding: 0.8rem 1.2rem;
+        border-radius: var(--radius-lg);
+        font-size: 0.95rem;
+        line-height: 1.5;
+        position: relative;
+        word-wrap: break-word;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+    }
+
+    .message-sent {
+        align-self: flex-end;
+        background: linear-gradient(135deg, var(--secondary-500), var(--secondary-600));
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .message-received {
+        align-self: flex-start;
+        background: white;
+        color: var(--text-main);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-bottom-left-radius: 4px;
+    }
+
+    .message-time {
+        font-size: 0.7rem;
+        margin-top: 0.2rem;
+        opacity: 0.6;
+    }
+
+    .message-sent .message-time {
+        color: rgba(255, 255, 255, 0.8);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-wrapper-main glass-panel">
+    <!-- Header -->
+    <div class="chat-header">
+        <div
+            style="width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 1px solid rgba(255,255,255,0.3);">
+            👤
+        </div>
+        <div>
+            <h3 style="font-weight: 800; font-size: 1.1rem; line-height: 1.2;">Your Class Representative</h3>
+            <p style="font-size: 0.8rem; opacity: 0.9; font-weight: 500;">Section {{ user.section }} • Private Channel
+            </p>
+        </div>
+    </div>
+
+    <!-- Connection Status -->
+    <div id="connectionStatus"
+        style="background: #fffbeb; color: #92400e; padding: 0.4rem; text-align: center; font-size: 0.75rem; font-weight: 700; display: none;">
+        Connecting...
+    </div>
+
+    <!-- Messages Area -->
+    <div class="messages-list" id="messagesContainer">
+        <!-- Loading -->
+        <div id="loadingSpinner" style="display: flex; justify-content: center; padding: 2rem;">
+            <div class="loading" style="border-top-color: var(--secondary-500);"></div>
+        </div>
+    </div>
+
+    <!-- Input Bar (Fixed at bottom of flex container) -->
+    <div class="input-bar">
+        <div style="flex: 1; display: flex; align-items: center; background: #f1f5f9; border-radius: 50px; padding: 0.2rem 1.5rem; transition: var(--transition-fast); border: 1px solid transparent;"
+            onfocusin="this.style.borderColor='var(--secondary-500)'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(99, 102, 241, 0.1)'"
+            onfocusout="this.style.borderColor='transparent'; this.style.background='#f1f5f9'; this.style.boxShadow='none'">
+            <input type="text" id="messageInput" placeholder="Type a message..."
+                style="width: 100%; padding: 0.8rem 0; border: none; outline: none; background: transparent; font-size: 0.95rem;">
+        </div>
+        <button id="sendBtn" onclick="sendMessage()" class="btn btn-primary"
+            style="width: 50px; height: 50px; border-radius: 50%; padding: 0; min-width: 50px; background: var(--secondary-600); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+            </svg>
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "{{ firebase_config.apiKey if firebase_config else '' }}",
+        authDomain: "{{ firebase_config.authDomain if firebase_config else '' }}",
+        databaseURL: "{{ firebase_config.databaseURL if firebase_config else '' }}",
+        projectId: "{{ firebase_config.projectId if firebase_config else '' }}",
+        storageBucket: "{{ firebase_config.storageBucket if firebase_config else '' }}",
+        messagingSenderId: "{{ firebase_config.messagingSenderId if firebase_config else '' }}",
+        appId: "{{ firebase_config.appId if firebase_config else '' }}"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    const currentUser = {
+        username: "{{ user.username }}",
+        section: "{{ user.section }}",
+        role: "{{ user.role or 'student' }}"
+    };
+
+    const chatPath = `chats/section_${currentUser.section}`;
+    const messagesRef = database.ref(chatPath + '/messages');
+
+    const container = document.getElementById('messagesContainer');
+    const input = document.getElementById('messageInput');
+    const status = document.getElementById('connectionStatus');
+
+    database.ref('.info/connected').on('value', (s) => {
+        if (s.val() === true) {
+            status.style.background = '#ecfdf5'; status.style.color = '#065f46';
+            status.textContent = 'Connected';
+            setTimeout(() => { status.style.display = 'none'; }, 2000);
+        } else {
+            status.style.display = 'block';
+            status.style.background = '#fffbeb'; status.style.color = '#92400e';
+            status.textContent = 'Connecting...';
+        }
+    });
+
+    messagesRef.orderByChild('timestamp').on('value', (snapshot) => {
+        document.getElementById('loadingSpinner').style.display = 'none';
+        container.innerHTML = '';
+
+        if (!snapshot.exists()) {
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8; text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+                    <p style="font-weight: 600;">Say hi to your CR!</p>
+                    <p style="font-size: 0.8rem;">Start a private conversation.</p>
+                </div>
+            `;
+            return;
+        }
+
+        snapshot.forEach((child) => {
+            renderMessage(child.val());
+        });
+        container.scrollTop = container.scrollHeight;
+    });
+
+    function renderMessage(msg) {
+        const isSent = msg.sender === currentUser.username;
+        const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'column';
+        wrapper.style.width = '100%';
+        wrapper.style.alignItems = isSent ? 'flex-end' : 'flex-start';
+
+        wrapper.innerHTML = `
+            <div class="message-bubble ${isSent ? 'message-sent' : 'message-received'}">
+                ${escapeHtml(msg.text)}
+                <div class="message-time">${msg.senderRole === 'cr' ? '👑 CR • ' : ''}${time}</div>
+            </div>
+        `;
+        container.appendChild(wrapper);
+    }
+
+    function sendMessage() {
+        const text = input.value.trim();
+        if (!text) return;
+
+        messagesRef.push({
+            text: text,
+            sender: currentUser.username,
+            senderRole: currentUser.role,
+            timestamp: Date.now(),
+            section: currentUser.section
+        }).then(() => { input.value = ''; });
+    }
+
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+</script>
+{% endblock %}

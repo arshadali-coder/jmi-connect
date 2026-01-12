@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Contacts | CR Panel{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto; padding-bottom: 5rem;">
+    <div style="margin-bottom: 2.5rem;">
+        <h2 style="color: white; font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;">Emergency Registry</h2>
+        <p style="color: rgba(255,255,255,0.7); font-weight: 500;">Section {{ user.section }} Management Panel</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="margin-bottom: 2rem;">
+        {% for category, message in messages %}
+        <div
+            style="padding: 1rem 1.5rem; border-radius: var(--radius-md); font-weight: 700; border-left: 5px solid; 
+                    {{ 'background: #ecfdf5; color: #065f46; border-color: #10b981;' if category == 'success' else 'background: #fef2f2; color: #991b1b; border-color: #ef4444;' }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Add Contact Form -->
+    <div class="glass-panel" style="padding: 2.5rem; margin-bottom: 3rem;">
+        <h3
+            style="font-size: 1.3rem; font-weight: 800; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.8rem;">
+            <span
+                style="width: 36px; height: 36px; background: #f59e0b; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white;">📞</span>
+            Add Official Contact
+        </h3>
+        <form method="POST">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="name" class="form-input" placeholder="e.g. Prof. Arshad Ali" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Official Role</label>
+                    <input type="text" name="role" class="form-input" placeholder="e.g. HOD / Proctor" required>
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label class="form-label">Direct Phone Number</label>
+                    <input type="tel" name="phone" class="form-input" placeholder="+91 98765 43210" required>
+                </div>
+                <div style="grid-column: 1 / -1; padding-top: 1rem;">
+                    <button type="submit" class="btn btn-primary"
+                        style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; padding: 1rem; width: 100%;">
+                        Authorize & Add Contact
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Active Contacts -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+        {% for contact in contacts %}
+        <div class="admin-contact-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                <div style="flex: 1;">
+                    <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main);">{{ contact.name }}</h3>
+                    <p
+                        style="color: var(--secondary-500); font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">
+                        {{ contact.role }}</p>
+                </div>
+                <div style="font-size: 1.5rem; opacity: 0.2;">📞</div>
+            </div>
+
+            <div
+                style="margin-bottom: 1.5rem; font-family: monospace; font-weight: 700; color: var(--text-muted); background: #f8fafc; padding: 0.8rem; border-radius: var(--radius-md); text-align: center;">
+                {{ contact.phone }}
+            </div>
+
+            <form action="{{ url_for('cr.delete_contact', contact_id=contact.id) }}" method="POST"
+                onsubmit="return confirm('Remove this contact?');">
+                <button type="submit" class="btn btn-ghost"
+                    style="width: 100%; color: #ef4444; border: 1px solid #fee2e2; background: #fff1f1;">
+                    Delete Entry
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+
+        {% if not contacts %}
+        <div class="glass-panel"
+            style="grid-column: 1 / -1; padding: 4rem; text-align: center; color: rgba(255,255,255,0.6);">
+            No emergency contacts listed. Add important departmental numbers above.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .admin-contact-card {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s var(--ease-smooth);
+    }
+
+    .admin-contact-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}JMIConnect{% endblock %}</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <div class="layout-container">
+        <!-- Navbar rewrite without Tailwind -->
+        <header class="header">
+            <!-- Logo -->
+            <a href="/" class="logo">
+                JMIConnect
+            </a>
+
+            <!-- Desktop Nav -->
+            <nav class="nav-desktop">
+                {% macro nav_link(endpoint, text) %}
+                <a href="{{ url_for(endpoint) }}" class="nav-link {{ 'active' if request.endpoint == endpoint }}">
+                    {{ text }}
+                </a>
+                {% endmacro %}
+
+                {% if user and user.role == 'cr' %}
+                {{ nav_link('cr.dashboard', 'Dashboard') }}
+                {{ nav_link('cr.announcements', 'Announcements') }}
+                {{ nav_link('cr.notes', 'Notes') }}
+                {{ nav_link('cr.messages', 'Messages') }}
+                {{ nav_link('cr.contacts', 'Contacts') }}
+                {% else %}
+                {{ nav_link('features.notes', 'Notes') }}
+                {{ nav_link('features.announcements', 'Announcements') }}
+                {{ nav_link('features.cr_connect', 'CR Connect') }}
+                {{ nav_link('features.emergency_contacts', 'Emergency') }}
+                {% endif %}
+            </nav>
+
+            <!-- Right Section: Profile + Hamburger -->
+            <div class="profile-action-bar">
+                {% if user %}
+                <a href="{{ url_for('auth.settings') }}" class="profile-pill">
+                    <div class="profile-avatar" {% if user.profile_pic %}
+                        style="background-image: url('{{ url_for('static', filename='uploads/' + user.profile_pic) }}'); background-size: cover;"
+                        {% endif %}>
+                        {% if not user.profile_pic %}{{ user.username[0].upper() }}{% endif %}
+                    </div>
+                    <span>{{ user.username }}</span>
+                </a>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="padding: 0.5rem 1.5rem;">Login</a>
+                {% endif %}
+
+                <!-- Mobile Hamburger -->
+                <button id="hamburger-btn" class="hamburger-btn" aria-label="Toggle Menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+
+                <!-- Mobile Dropdown -->
+                <div id="mobile-menu" class="mobile-menu">
+                    {% if user %}
+                    <div
+                        style="padding: 0.5rem 1rem; border-bottom: 1px solid rgba(0,0,0,0.05); margin-bottom: 0.5rem;">
+                        <div style="font-weight: 800; color: var(--text-main);">{{ user.username }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Sec-{{ user.section }}</div>
+                    </div>
+                    {% endif %}
+
+                    {% if user and user.role == 'cr' %}
+                    <a href="{{ url_for('cr.dashboard') }}" class="mobile-menu-link">Dashboard</a>
+                    <a href="{{ url_for('cr.announcements') }}" class="mobile-menu-link">Announcements</a>
+                    <a href="{{ url_for('cr.notes') }}" class="mobile-menu-link">Notes</a>
+                    <a href="{{ url_for('cr.messages') }}" class="mobile-menu-link">Messages</a>
+                    <a href="{{ url_for('cr.contacts') }}" class="mobile-menu-link">Contacts</a>
+                    {% else %}
+                    <a href="{{ url_for('features.notes') }}" class="mobile-menu-link">Notes</a>
+                    <a href="{{ url_for('features.announcements') }}" class="mobile-menu-link">Announcements</a>
+                    <a href="{{ url_for('features.cr_connect') }}" class="mobile-menu-link">CR Connect</a>
+                    <a href="{{ url_for('features.emergency_contacts') }}" class="mobile-menu-link">Emergency</a>
+                    {% endif %}
+                    <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.05); margin: 0.5rem 0;">
+                    <a href="{{ url_for('auth.settings') }}" class="mobile-menu-link">Settings Account</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- IOS Home Indicator (Optional aesthetic) -->
+    <div
+        style="position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); width: 120px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 10px; pointer-events: none;">
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('hamburger-btn');
+            const menu = document.getElementById('mobile-menu');
+
+            if (btn && menu) {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    menu.classList.toggle('active');
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                        menu.classList.remove('active');
+                    }
+                });
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>
