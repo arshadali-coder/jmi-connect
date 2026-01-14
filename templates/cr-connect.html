@@ -149,9 +149,9 @@
         }
     });
 
-    messagesRef.orderByChild('timestamp').on('value', (snapshot) => {
+    // Initial load of all messages
+    messagesRef.orderByChild('timestamp').once('value', (snapshot) => {
         document.getElementById('loadingSpinner').style.display = 'none';
-        container.innerHTML = '';
 
         if (!snapshot.exists()) {
             container.innerHTML = `
@@ -161,12 +161,38 @@
                     <p style="font-size: 0.8rem;">Start a private conversation.</p>
                 </div>
             `;
+        } else {
+            container.innerHTML = '';
+            snapshot.forEach((child) => {
+                renderMessage(child.val());
+            });
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 100);
+        }
+    }).catch((error) => {
+        console.error('Error loading messages:', error);
+        document.getElementById('loadingSpinner').style.display = 'none';
+    });
+
+    // Listen for new messages in real-time
+    let isInitialLoad = true;
+    messagesRef.orderByChild('timestamp').on('child_added', (snapshot) => {
+        if (isInitialLoad) {
+            // Skip rendering during initial load (already handled by once('value'))
+            messagesRef.once('value', () => {
+                isInitialLoad = false;
+            });
             return;
         }
 
-        snapshot.forEach((child) => {
-            renderMessage(child.val());
-        });
+        // Remove empty state if it exists
+        const emptyState = container.querySelector('div[style*="Say hi to your CR"]');
+        if (emptyState) {
+            container.innerHTML = '';
+        }
+
+        renderMessage(snapshot.val());
         container.scrollTop = container.scrollHeight;
     });
 

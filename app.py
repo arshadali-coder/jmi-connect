@@ -1,12 +1,19 @@
 import json
 import os
+from dotenv import load_dotenv
 from extensions import create_app
 from flask import render_template, request, redirect, url_for
+
+# Load environment variables
+load_dotenv()
 
 app = create_app()
 
 from features.cr_routes import cr_bp
 app.register_blueprint(cr_bp)
+
+from auth.password_reset import password_reset_bp
+app.register_blueprint(password_reset_bp)
 
 
 import firebase_service as fb

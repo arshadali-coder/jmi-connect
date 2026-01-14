@@ -434,6 +434,7 @@ button {
 .messages-list {
     flex: 1;
     overflow-y: auto;
+    min-height: 0;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;

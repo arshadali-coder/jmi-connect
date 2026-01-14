@@ -74,18 +74,24 @@ def announcements():
     section = user.get('section')
 
     if request.method == 'POST':
+        link = request.form.get('link', '').strip()
+        
         new_item = {
             "title": request.form.get('title'),
-            "subtitle": request.form.get('description'),
+            "subtitle": request.form.get('type').title(),  # Use type as subtitle (e.g., "Announcement", "Deadline")
             "description": request.form.get('description'),
             "type": request.form.get('type'),
             "date": request.form.get('date') or datetime.now().strftime('%Y-%m-%d'),
             "section": section,
-            "link": "#",
-            "link_text": "View Details",
             "created_by": user['username'],
             "timestamp": datetime.now().isoformat()
         }
+        
+        # Only add link if provided
+        if link:
+            new_item["link"] = link
+            new_item["link_text"] = "View Details"
+        
         fb.add_announcement(new_item)
         flash("Announcement published successfully!", "success")
         return redirect(url_for('cr.announcements'))

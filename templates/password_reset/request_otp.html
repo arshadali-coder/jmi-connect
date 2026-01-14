@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgot Password | JMIConnect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .reset-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: var(--bg-gradient);
+        }
+
+        .reset-card {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .reset-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .reset-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin: 0 auto 1.5rem;
+        }
+
+        .reset-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .reset-subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-success {
+            background: #ecfdf5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="reset-wrapper">
+        <div class="reset-card">
+            <div class="reset-header">
+                <div class="reset-icon">🔑</div>
+                <h1 class="reset-title">Forgot Password?</h1>
+                <p class="reset-subtitle">Enter your username to receive an OTP on your registered email</p>
+            </div>
+
+            <div id="alertBox" style="display: none;"></div>
+
+            <form id="requestForm" onsubmit="handleSubmit(event)">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="username" class="form-input" placeholder="Enter your username" required
+                        autofocus>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-primary"
+                    style="width: 100%; padding: 1.1rem; font-size: 1.1rem; margin-top: 1rem;">
+                    Send OTP
+                </button>
+            </form>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="/" style="color: var(--primary-600); font-weight: 600; font-size: 0.95rem;">← Back to Login</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function handleSubmit(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+            const alertBox = document.getElementById('alertBox');
+            const originalText = submitBtn.innerHTML;
+
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loading"></div>';
+            alertBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/password-reset/request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Show success message
+                    alertBox.className = 'alert alert-success';
+                    alertBox.textContent = data.message;
+                    alertBox.style.display = 'block';
+
+                    // Redirect to verify page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = `/password-reset/verify?username=${encodeURIComponent(username)}`;
+                    }, 2000);
+                } else {
+                    // Show error message
+                    alertBox.className = 'alert alert-error';
+                    alertBox.textContent = data.message || 'Failed to send OTP';
+                    alertBox.style.display = 'block';
+
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            } catch (err) {
+                alertBox.className = 'alert alert-error';
+                alertBox.textContent = 'Connection error. Please try again.';
+                alertBox.style.display = 'block';
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+    </script>
+</body>
+
+</html>

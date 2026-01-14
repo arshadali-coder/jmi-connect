@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP | JMIConnect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .reset-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: var(--bg-gradient);
+        }
+
+        .reset-card {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .reset-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .reset-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--secondary-500), var(--secondary-600));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin: 0 auto 1.5rem;
+        }
+
+        .reset-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .reset-subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .otp-input {
+            font-size: 2rem;
+            letter-spacing: 1rem;
+            text-align: center;
+            font-weight: 700;
+            padding: 1.5rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-success {
+            background: #ecfdf5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: #1e40af;
+        }
+
+        .timer {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 1rem;
+        }
+
+        .timer.warning {
+            color: #ef4444;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="reset-wrapper">
+        <div class="reset-card">
+            <div class="reset-header">
+                <div class="reset-icon">📧</div>
+                <h1 class="reset-title">Verify OTP</h1>
+                <p class="reset-subtitle">Enter the 6-digit code sent to your email</p>
+            </div>
+
+            <div class="info-box">
+                <strong>📬 Check your email</strong><br>
+                We've sent a verification code to your registered email address. It will expire in 10 minutes.
+            </div>
+
+            <div id="alertBox" style="display: none;"></div>
+
+            <form id="verifyForm" onsubmit="handleSubmit(event)">
+                <input type="hidden" id="username" value="">
+
+                <div class="form-group">
+                    <label class="form-label">Enter OTP</label>
+                    <input type="text" id="otp" class="form-input otp-input" placeholder="000000" maxlength="6"
+                        pattern="[0-9]{6}" required autofocus>
+                </div>
+
+                <div class="timer" id="timer">Valid for: <span id="timeLeft">10:00</span></div>
+
+                <button type="submit" id="submitBtn" class="btn btn-primary"
+                    style="width: 100%; padding: 1.1rem; font-size: 1.1rem; margin-top: 1.5rem;">
+                    Verify OTP
+                </button>
+            </form>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <button onclick="resendOTP()" id="resendBtn" class="btn btn-ghost" style="font-size: 0.9rem;">
+                    Didn't receive? Resend OTP
+                </button>
+            </div>
+
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="/" style="color: var(--primary-600); font-weight: 600; font-size: 0.95rem;">← Back to Login</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get username from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const username = urlParams.get('username');
+        document.getElementById('username').value = username || '';
+
+        if (!username) {
+            window.location.href = '/password-reset/request';
+        }
+
+        // Timer countdown (10 minutes)
+        let timeLeft = 600; // 10 minutes in seconds
+        const timerElement = document.getElementById('timeLeft');
+        const timerContainer = document.getElementById('timer');
+
+        const countdown = setInterval(() => {
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            if (timeLeft <= 60) {
+                timerContainer.classList.add('warning');
+            }
+
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                timerElement.textContent = 'Expired';
+                document.getElementById('submitBtn').disabled = true;
+                showAlert('OTP has expired. Please request a new one.', 'error');
+            }
+        }, 1000);
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+
+            const otp = document.getElementById('otp').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+            const alertBox = document.getElementById('alertBox');
+            const originalText = submitBtn.innerHTML;
+
+            if (otp.length !== 6) {
+                showAlert('Please enter a valid 6-digit OTP', 'error');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loading"></div>';
+            alertBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/password-reset/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, otp })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    showAlert(data.message, 'success');
+                    clearInterval(countdown);
+
+                    // Redirect to reset password page
+                    setTimeout(() => {
+                        window.location.href = `/password-reset/reset?username=${encodeURIComponent(username)}`;
+                    }, 1500);
+                } else {
+                    showAlert(data.message || 'Invalid OTP', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            } catch (err) {
+                showAlert('Connection error. Please try again.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        async function resendOTP() {
+            const resendBtn = document.getElementById('resendBtn');
+            const originalText = resendBtn.innerHTML;
+
+            resendBtn.disabled = true;
+            resendBtn.innerHTML = 'Sending...';
+
+            try {
+                const res = await fetch('/password-reset/request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    showAlert('New OTP sent to your email', 'success');
+                    // Reset timer
+                    timeLeft = 600;
+                    timerContainer.classList.remove('warning');
+                    document.getElementById('submitBtn').disabled = false;
+                } else {
+                    showAlert(data.message || 'Failed to resend OTP', 'error');
+                }
+            } catch (err) {
+                showAlert('Connection error. Please try again.', 'error');
+            } finally {
+                resendBtn.disabled = false;
+                resendBtn.innerHTML = originalText;
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = `alert alert-${type}`;
+            alertBox.textContent = message;
+            alertBox.style.display = 'block';
+        }
+
+        // Auto-focus and format OTP input
+        document.getElementById('otp').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+    </script>
+</body>
+
+</html>
