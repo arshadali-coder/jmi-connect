@@ -52,6 +52,7 @@ def cr_connect():
         from firebase_config import FIREBASE_CONFIG
         firebase_config = FIREBASE_CONFIG
     except (ImportError, ModuleNotFoundError):
+        # Fallback to empty dict or env vars if needed
         pass
         
     return render_template("cr-connect.html", user=user, firebase_config=firebase_config)
