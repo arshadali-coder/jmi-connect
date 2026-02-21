@@ -1,4 +1,14 @@
+# Secrets & config
 firebase_config.py
 config.py
 serviceAccountKey.json
 .env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Uploads
+static/uploads/

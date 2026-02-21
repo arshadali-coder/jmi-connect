@@ -1,0 +1,14 @@
+# JMIConnect - Dependencies
+# Tested with Python 3.11/3.12 (Python 3.14 NOT supported due to protobuf incompatibility)
+
+# Core Framework
+Flask>=3.0.0
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Firebase / Firestore
+firebase-admin>=6.2.0
+
+# Werkzeug (Flask dependency - for secure_filename etc.)
+Werkzeug>=3.0.0

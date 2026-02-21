@@ -1,25 +1,9 @@
-import json
-import os
-from flask import Blueprint, render_template, request, redirect, url_for, current_app
-
-features_bp = Blueprint('features', __name__)
-
-def get_current_user():
-    session_id = request.cookies.get('session_id')
-    if not session_id:
-        return None
-    return fb.get_session(session_id)
-
-def load_json(file_path):
-    if not os.path.exists(file_path):
-        return []
-    with open(file_path, 'r') as f:
-        try:
-            return json.load(f)
-        except:
-            return []
+from flask import Blueprint, render_template, request, redirect, url_for
 
 import firebase_service as fb
+from utils import get_current_user
+
+features_bp = Blueprint('features', __name__)
 
 # ==================== NOTES (Student View) ====================
 @features_bp.route('/notes')
@@ -67,7 +51,7 @@ def cr_connect():
     try:
         from firebase_config import FIREBASE_CONFIG
         firebase_config = FIREBASE_CONFIG
-    except:
+    except (ImportError, ModuleNotFoundError):
         pass
         
     return render_template("cr-connect.html", user=user, firebase_config=firebase_config)

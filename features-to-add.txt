@@ -1,0 +1,2 @@
+1. Make it usable without login
+2. 

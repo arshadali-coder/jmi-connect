@@ -1,34 +1,17 @@
+from functools import wraps
 from flask import Blueprint, render_template, request, redirect, url_for, current_app, jsonify, flash
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
-import json
-import uuid
+
+import firebase_service as fb
+from utils import get_current_user
 
 cr_bp = Blueprint('cr', __name__, url_prefix='/cr')
 
-def get_db_path(filename):
-    return os.path.join(current_app.root_path, 'database', filename)
-
-def load_json(file_path):
-    if not os.path.exists(file_path):
-        return []
-    with open(file_path, 'r') as f:
-        try:
-            return json.load(f)
-        except:
-            return []
-
-def save_json(file_path, data):
-    with open(file_path, 'w') as f:
-        json.dump(data, f, indent=4)
-
-def get_current_user():
-    session_id = request.cookies.get('session_id')
-    if not session_id: return None
-    return fb.get_session(session_id)
 
 def cr_required(f):
+    @wraps(f)
     def wrapper(*args, **kwargs):
         user = get_current_user()
         if not user:
@@ -39,12 +22,8 @@ def cr_required(f):
         if not full_user or full_user.get('role') != 'cr':
             return redirect(url_for('index'))
         return f(*args, **kwargs)
-    wrapper.__name__ = f.__name__
     return wrapper
 
-import firebase_service as fb
-
-# ... (omitting helper functions like load_json if no longer used for core features)
 
 # ==================== DASHBOARD ====================
 @cr_bp.route('/dashboard')
@@ -195,7 +174,7 @@ def messages():
     try:
         from firebase_config import FIREBASE_CONFIG
         firebase_config = FIREBASE_CONFIG
-    except:
+    except (ImportError, ModuleNotFoundError):
         pass
         
     return render_template('cr_panel/messages.html', user=user, firebase_config=firebase_config)

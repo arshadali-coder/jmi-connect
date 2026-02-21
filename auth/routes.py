@@ -1,41 +1,11 @@
-import json
-import os
 import uuid
-from flask import Blueprint, jsonify, request, make_response, render_template, current_app, flash, redirect, url_for
-from werkzeug.utils import secure_filename
+from flask import Blueprint, jsonify, request, make_response, render_template, flash, redirect, url_for
 from datetime import datetime
 
-auth_bp = Blueprint('auth', __name__)
-
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def get_db_path(filename):
-    return os.path.join(current_app.root_path, 'database', filename)
-
-
-def load_json(file_path):
-    if not os.path.exists(file_path):
-        return []
-    with open(file_path, 'r') as f:
-        try:
-            return json.load(f)
-        except json.JSONDecodeError:
-            return []
-
-def save_json(file_path, data):
-    with open(file_path, 'w') as f:
-        json.dump(data, f, indent=4)
-
 import firebase_service as fb
+from utils import get_current_user
 
-def get_current_user():
-    session_id = request.cookies.get('session_id')
-    if not session_id:
-        return None
-    return fb.get_session(session_id)
+auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
 def login():

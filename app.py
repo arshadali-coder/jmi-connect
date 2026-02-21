@@ -1,8 +1,7 @@
-import json
-import os
 from dotenv import load_dotenv
 from extensions import create_app
 from flask import render_template, request, redirect, url_for
+from utils import get_current_user
 
 # Load environment variables
 load_dotenv()
@@ -15,15 +14,6 @@ app.register_blueprint(cr_bp)
 from auth.password_reset import password_reset_bp
 app.register_blueprint(password_reset_bp)
 
-
-import firebase_service as fb
-
-def get_current_user():
-    session_id = request.cookies.get('session_id')
-    if not session_id:
-        return None
-    return fb.get_session(session_id)
-
 @app.route('/')
 def index():
     user = get_current_user()
@@ -35,4 +25,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)
