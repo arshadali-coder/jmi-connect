@@ -6,11 +6,24 @@ from datetime import datetime
 # Path to service account key
 SERVICE_ACCOUNT_KEY = 'serviceAccountKey.json'
 
+import json
+
 def init_firebase():
     if not firebase_admin._apps:
+        # 1. Try file
         if os.path.exists(SERVICE_ACCOUNT_KEY):
             cred = credentials.Certificate(SERVICE_ACCOUNT_KEY)
             firebase_admin.initialize_app(cred)
+        # 2. Try Environment Variable (JSON String)
+        elif os.environ.get('FIREBASE_SERVICE_ACCOUNT'):
+            try:
+                service_account_info = json.loads(os.environ.get('FIREBASE_SERVICE_ACCOUNT'))
+                cred = credentials.Certificate(service_account_info)
+                firebase_admin.initialize_app(cred)
+            except Exception as e:
+                print(f"Error initializing Firebase from env var: {e}")
+                return None
+        # 3. Default (ADC)
         else:
             try:
                 firebase_admin.initialize_app()
