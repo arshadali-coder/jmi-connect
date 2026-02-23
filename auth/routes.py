@@ -1,6 +1,7 @@
 import uuid
 from flask import Blueprint, jsonify, request, make_response, render_template, flash, redirect, url_for
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 import firebase_service as fb
 from utils import get_current_user
@@ -15,7 +16,7 @@ def login():
 
     user = fb.get_user(username)
 
-    if user and user.get('password') == password:
+    if user and check_password_hash(user.get('password'), password):
         # Create session
         session_id = str(uuid.uuid4())
         session_data = {
@@ -85,14 +86,14 @@ def settings():
         if new_pw:
             if not current_pw:
                 flash("Enter current password to set a new one.", "error")
-            elif user['password'] != current_pw:
+            elif not check_password_hash(user['password'], current_pw):
                 flash("Incorrect current password.", "error")
             elif new_pw != confirm_pw:
                 flash("New passwords do not match.", "error")
             elif len(new_pw) < 6:
                 flash("Password must be at least 6 characters.", "error")
             else:
-                user['password'] = new_pw
+                user['password'] = generate_password_hash(new_pw)
                 pw_changed = True
                 flash("Password updated successfully.", "success")
         
